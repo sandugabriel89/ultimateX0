@@ -155,6 +155,21 @@ function newGameState(starter = X, names = {x:"Player X", o:"Player O"}){
     bigStatus: Array(9).fill(MINI_OPEN)
   };
 }
+  function updateHostControls() {
+  const isHost = myRole === "X";
+
+  // inputs nume
+  xNameInput.disabled = !isHost;
+  oNameInput.disabled = !isHost;
+
+  // butoane
+  rematchBtn.disabled = !isHost;
+  resetScoreBtn.disabled = !isHost;
+
+  // vizual (opțional, dar recomandat)
+  document.body.classList.toggle("guest-mode", !isHost);
+}
+
 
 function cellSymbol(v){ return v === X ? "X" : v === O ? "O" : ""; }
 function miniStampSymbol(st){ return st === MINI_X ? "X" : st === MINI_O ? "O" : st === MINI_DRAW ? "=" : ""; }
@@ -575,6 +590,7 @@ createRoomBtn.addEventListener("click", async () => {
 
   roomId = makeRoomId();
   myRole = "X";
+  updateHostControls();
 
   const names = {
     x: (xNameInput.value.trim() || "Player X").slice(0,18),
@@ -634,7 +650,7 @@ async function joinRoom(id){
     myRole = null;
     alert("Room este plin (deja 2 jucători). Poți doar privi.");
   }
-
+updateHostCOntrols();
   showRoomUI(roomId);
   startRoomListener(roomId);
 }
@@ -647,6 +663,7 @@ function startRoomListener(id){
     state = g.state;
     score = g.score;
     renderAll();
+    updateHostControls();
   });
 }
 
@@ -782,4 +799,5 @@ onAuthStateChanged(auth, async (user) => {
 </script>
 </body>
 </html>
+
 
