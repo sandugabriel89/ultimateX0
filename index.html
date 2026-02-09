@@ -60,7 +60,7 @@
       <div class="status">
         <span class="turn-text">
           <span id="turnPill" class="turn-indicator x" aria-label="Rândul curent">X</span>
-          <span id="turnSentence">Rândul tău, <b id="turnName">Player X</b></span>
+          <span id="turnSentence">Your turn, <b id="turnName">Player X</b></span>
         </span>
         <span id="gameMsg" class="msg"></span>
       </div>
@@ -473,8 +473,8 @@ function renderAll(){
   } else {
     if(roomId){
       if(!myRole) gameMsg.textContent = "— În cameră (spectator)…";
-      else if(myTurn()) gameMsg.textContent = `— E rândul tău (${myRole})`;
-      else gameMsg.textContent = `— Așteaptă mutarea adversarului (${myRole})`;
+      else if(myTurn()) gameMsg.textContent = `— Your turn`;
+      else gameMsg.textContent = `— Wait for your turn`;
     } else {
       gameMsg.textContent = "";
     }
