@@ -310,6 +310,16 @@ const roomIdTxt = document.getElementById("roomIdTxt");
 /* =========================
    THEME + SETTINGS PANEL
 ========================= */
+function updateRoleUI(){
+  const isHost = myRole === "X";
+  const isGuest = myRole === "O";
+  const isSpectator = roomId && !myRole;
+
+  document.body.classList.toggle("is-host", isHost);
+  document.body.classList.toggle("is-guest", isGuest);
+  document.body.classList.toggle("is-spectator", !!isSpectator);
+}
+
 function setTheme(isDark){
   document.body.classList.toggle("dark", isDark);
   themeBtn.textContent = isDark ? "☀️" : "🌙";
@@ -590,6 +600,7 @@ createRoomBtn.addEventListener("click", async () => {
 
   roomId = makeRoomId();
   myRole = "X";
+  updateRoleUI();
   updateHostControls();
 
   const names = {
@@ -651,6 +662,7 @@ async function joinRoom(id){
     alert("Room este plin (deja 2 jucători). Poți doar privi.");
   }
 updateHostControls();
+updateRoleUI();
   showRoomUI(roomId);
   startRoomListener(roomId);
 }
@@ -663,6 +675,7 @@ function startRoomListener(id){
     state = g.state;
     score = g.score;
     renderAll();
+    updateRoleUI();
     updateHostControls();
   });
 }
