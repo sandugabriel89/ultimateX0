@@ -357,14 +357,18 @@ body.dark .cell.filled{
 
 /* ===== X / O ===== */
 .mark{
-  position: absolute;
-  inset: 0;
+  position: relative;     /* nu mai absolute */
+  inset: auto;
+
   display: grid;
   place-items: center;
 
-  font-size: 1em;     /* ia direct din .cell */
+  font-size: 1em;
   font-weight: 950;
   line-height: 1;
+
+  /* mică corecție optică pe verticală (baseline) */
+  transform: translateY(0.06em);
 
   animation: pop 0.3s ease-out;
 }
