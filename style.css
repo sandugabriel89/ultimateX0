@@ -478,3 +478,15 @@ body.dark .mini.drawn .stamp{ color: rgba(255,255,255,.55); }
   opacity: 0.5;
   pointer-events: none;
 }
+
+/* ===== Guest: ascunde butoane / setări ===== */
+.is-guest #settingsBtn,
+.is-guest #settingsPanel,
+.is-guest #undoBtn,
+.is-guest #rematchBtn,
+.is-guest #resetScoreBtn {
+  display: none !important;
+}
+.is-guest #createRoomBtn {
+  display: none !important;
+}
