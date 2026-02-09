@@ -471,3 +471,10 @@ body.dark .mini.drawn .stamp{ color: rgba(255,255,255,.55); }
   filter: saturate(.9);
 
 }
+
+.guest-mode input,
+.guest-mode button#rematchBtn,
+.guest-mode button#resetScoreBtn {
+  opacity: 0.5;
+  pointer-events: none;
+}
