@@ -486,4 +486,7 @@ body.dark .mini.drawn .stamp{ color: rgba(255,255,255,.55); }
   display: none !important;
 }
 
-
+/* ===== Guest: ascunde controale Host ===== */
+body.is-guest #copyLinkBtn {
+  display: none !important;
+}
