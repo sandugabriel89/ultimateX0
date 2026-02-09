@@ -536,3 +536,17 @@ body.is-guest #copyLinkBtn {
 .turn-text b {
   font-weight: 900;
 }
+
+/* FIX garantat centrare X/O (override final) */
+.cell{
+  display: grid !important;
+  place-items: center !important;
+}
+
+.mark{
+  position: static !important;   /* anulează absolute */
+  transform: none !important;    /* anulează translateY vechi */
+  line-height: 1 !important;
+  display: grid !important;
+  place-items: center !important;
+}
