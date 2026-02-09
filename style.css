@@ -475,18 +475,13 @@ body.dark .mini.drawn .stamp{ color: rgba(255,255,255,.55); }
 
 
 /* ===== Guest: ascunde butoane / setări ===== */
-.is-guest #settingsBtn,
-.is-guest #settingsPanel,
-.is-guest #undoBtn,
-.is-guest #rematchBtn,
-.is-guest #resetScoreBtn {
-  display: none !important;
-}
-.is-guest #createRoomBtn {
-  display: none !important;
-}
-
 /* ===== Guest: ascunde controale Host ===== */
+body.is-guest #settingsBtn,
+body.is-guest #settingsPanel,
+body.is-guest #undoBtn,
+body.is-guest #rematchBtn,
+body.is-guest #resetScoreBtn,
+body.is-guest #createRoomBtn,
 body.is-guest #copyLinkBtn {
   display: none !important;
 }
