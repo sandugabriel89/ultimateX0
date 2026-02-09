@@ -388,7 +388,7 @@ body.dark .mini.drawn .stamp{ color: rgba(255,255,255,.55); }
  
 }
 
-}
+
 .mini.x-won .winline{ color: var(--x); }
 .mini.o-won .winline{ color: var(--o); }
 .winline.r0::before{ top: 16.7%; }
@@ -472,12 +472,7 @@ body.dark .mini.drawn .stamp{ color: rgba(255,255,255,.55); }
 
 }
 
-.guest-mode input,
-.guest-mode button#rematchBtn,
-.guest-mode button#resetScoreBtn {
-  opacity: 0.5;
-  pointer-events: none;
-}
+
 
 /* ===== Guest: ascunde butoane / setări ===== */
 .is-guest #settingsBtn,
@@ -490,3 +485,5 @@ body.dark .mini.drawn .stamp{ color: rgba(255,255,255,.55); }
 .is-guest #createRoomBtn {
   display: none !important;
 }
+
+
