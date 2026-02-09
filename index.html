@@ -1,0 +1,772 @@
+<div class="app">
+  <header class="panel sticky">
+    <div class="row">
+      <div class="title">Ultimate X și 0</div>
+
+      <div class="btns">
+        <button id="settingsBtn" class="secondary settings-toggle" aria-expanded="false" title="Settings">⚙️</button>
+        <button id="themeBtn" class="secondary" aria-pressed="false" title="Dark / Light">🌙</button>
+
+        <button id="createRoomBtn" class="secondary" title="Create room">➕</button>
+        <button id="copyLinkBtn" class="secondary" title="Copy link" disabled>🔗</button>
+        <span class="pill" id="roomPill" style="display:none">Room: <b id="roomIdTxt"></b></span>
+
+        <button id="undoBtn" class="secondary" disabled title="Undo (local only)">↩️</button>
+        <button id="rematchBtn">Rematch</button>
+        <button id="resetScoreBtn" class="secondary">Reset scor</button>
+      </div>
+    </div>
+
+    <div id="settingsPanel" class="settings-panel" hidden>
+      <div class="row settings">
+        <div class="field">
+          <label>Nume X</label>
+          <input id="xName" type="text" value="Player X" maxlength="18" />
+        </div>
+
+        <div class="field">
+          <label>Nume O</label>
+          <input id="oName" type="text" value="Player O" maxlength="18" />
+        </div>
+
+        <div class="field">
+          <label>Cine începe (local)</label>
+          <select id="starter">
+            <option value="X" selected>X</option>
+            <option value="O">O</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="legend" style="margin-top:10px">
+        Multiplayer: Host = X, Guest = O. Când ești într-o cameră (Room), mutările se sincronizează în timp real.
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="status">
+        <span class="turn-text">
+          <span id="turnPill" class="turn-indicator x" aria-label="Rândul curent">X</span>
+          <span id="turnSentence">Rândul tău, <b id="turnName">Player X</b></span>
+        </span>
+        <span id="gameMsg" class="msg"></span>
+      </div>
+
+      <div class="score">
+        <span class="pill"><span id="scoreXLabel">Player X</span>: <b id="sx">0</b></span>
+        <span class="pill"><span id="scoreOLabel">Player O</span>: <b id="so">0</b></span>
+        <span class="pill">Egal: <b id="sd">0</b></span>
+      </div>
+    </div>
+  </header>
+
+  <section class="panel board" id="boardPanel">
+    <div class="board-wrap">
+      <div id="bigGrid" class="big-grid"></div>
+      <div id="bigWinLine" class="big-winline" hidden></div>
+    </div>
+  </section>
+</div>
+
+<script type="module">
+/* =========================
+   FIREBASE IMPORTS (MODULE)
+========================= */
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
+import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
+import { getDatabase, ref, set, get, update, onValue, runTransaction } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-database.js";
+
+/* =========================
+   0) CONFIG
+========================= */
+const firebaseConfig = {
+  apiKey: "AIzaSyB-VJOWfPeAhrfSwRnhcvx_sf5dy8W0G7s",
+  authDomain: "ultimate-sgxo.firebaseapp.com",
+  databaseURL: "https://ultimate-sgxo-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "ultimate-sgxo",
+  storageBucket: "ultimate-sgxo.firebasestorage.app",
+  messagingSenderId: "18150041963",
+  appId: "1:18150041963:web:2acc6c506ec020696f042e"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getDatabase(app);
+
+/* =========================
+   GAME CONSTANTS
+========================= */
+const EMPTY = 0, X = 1, O = 2;
+const MINI_OPEN = 0, MINI_X = 1, MINI_O = 2, MINI_DRAW = 3;
+
+const LINES = [
+  [0,1,2],[3,4,5],[6,7,8],
+  [0,3,6],[1,4,7],[2,5,8],
+  [0,4,8],[2,4,6],
+];
+const LINE_CLASS = {
+  0: "r0", 1: "r1", 2: "r2",
+  3: "c0", 4: "c1", 5: "c2",
+  6: "d0", 7: "d1"
+};
+
+const THEME_KEY = "utt-theme";
+const SETTINGS_KEY = "utt-settings-open";
+
+/* =========================
+   STATE
+========================= */
+let state = null;
+let score = { x: 0, o: 0, d: 0 };
+let history = []; // undo local (1 step)
+
+let myUid = null;
+let roomId = null;
+let myRole = null; // "X" | "O" | null
+
+function deepClone(obj){
+  if (typeof structuredClone === "function") return structuredClone(obj);
+  return JSON.parse(JSON.stringify(obj));
+}
+
+function newGameState(starter = X, names = {x:"Player X", o:"Player O"}){
+  return {
+    turn: starter,
+    nextMini: -1,
+    gameOver: false,
+    winner: 0,
+    bigWinLine: null,
+    players: { x: names.x, o: names.o },
+    minis: Array.from({length:9}, () => ({
+      cells: Array(9).fill(EMPTY),
+      status: MINI_OPEN,
+      winLine: null
+    })),
+    bigStatus: Array(9).fill(MINI_OPEN)
+  };
+}
+
+function cellSymbol(v){ return v === X ? "X" : v === O ? "O" : ""; }
+function miniStampSymbol(st){ return st === MINI_X ? "X" : st === MINI_O ? "O" : st === MINI_DRAW ? "=" : ""; }
+function isMiniFull(mini){ return mini.cells.every(v => v !== EMPTY); }
+
+function checkWinnerOnCells(cells){
+  for (let i=0; i<LINES.length; i++){
+    const [a,b,c] = LINES[i];
+    if(cells[a] !== EMPTY && cells[a] === cells[b] && cells[a] === cells[c]){
+      return { winner: cells[a], lineIndex: i };
+    }
+  }
+  return { winner: 0, lineIndex: null };
+}
+
+function allowedMiniIndex(s){
+  if(s.nextMini >= 0){
+    const st = s.minis[s.nextMini].status;
+    if(st === MINI_OPEN) return s.nextMini;
+  }
+  return -1;
+}
+
+function getTurnName(){
+  return state.turn === X ? state.players.x : state.players.o;
+}
+
+function finalizeMiniIfNeeded(s, m){
+  const mini = s.minis[m];
+  if(mini.status !== MINI_OPEN) return;
+
+  const res = checkWinnerOnCells(mini.cells);
+  if(res.winner === X){
+    mini.status = MINI_X;
+    mini.winLine = res.lineIndex;
+    s.bigStatus[m] = MINI_X;
+  } else if(res.winner === O){
+    mini.status = MINI_O;
+    mini.winLine = res.lineIndex;
+    s.bigStatus[m] = MINI_O;
+  } else if(isMiniFull(mini)){
+    mini.status = MINI_DRAW;
+    mini.winLine = null;
+    s.bigStatus[m] = MINI_DRAW;
+  }
+}
+
+function checkBigWinner(s){
+  const big = s.bigStatus.map(st => st === MINI_X ? X : st === MINI_O ? O : EMPTY);
+  const res = checkWinnerOnCells(big);
+
+  if(res.winner === X || res.winner === O){
+    s.bigWinLine = res.lineIndex;
+    return res.winner;
+  }
+
+  const allClosed = s.bigStatus.every(st => st !== MINI_OPEN);
+  return allClosed ? 3 : 0;
+}
+
+/* =========================
+   PURE MOVE APPLY (local + multiplayer)
+========================= */
+function applyMove(currentState, currentScore, m, c){
+  const s = deepClone(currentState);
+  const sc = deepClone(currentScore);
+
+  if(s.gameOver) return { ok:false, state: s, score: sc };
+
+  const forced = allowedMiniIndex(s);
+  if(forced !== -1 && m !== forced) return { ok:false, state: s, score: sc };
+
+  const mini = s.minis[m];
+  if(mini.status !== MINI_OPEN) return { ok:false, state: s, score: sc };
+  if(mini.cells[c] !== EMPTY) return { ok:false, state: s, score: sc };
+
+  mini.cells[c] = s.turn;
+
+  finalizeMiniIfNeeded(s, m);
+
+  s.nextMini = c;
+  if(allowedMiniIndex(s) === -1) s.nextMini = -1;
+
+  const bw = checkBigWinner(s);
+  if(bw === X || bw === O){
+    s.gameOver = true;
+    s.winner = bw;
+    if(bw === X) sc.x++;
+    if(bw === O) sc.o++;
+  } else if(bw === 3){
+    s.gameOver = true;
+    s.winner = 3;
+    sc.d++;
+  }
+
+  if(!s.gameOver){
+    s.turn = (s.turn === X ? O : X);
+  }
+
+  return { ok:true, state: s, score: sc };
+}
+
+/* =========================
+   UI HOOKS
+========================= */
+const bigGrid = document.getElementById("bigGrid");
+const bigWinLineEl = document.getElementById("bigWinLine");
+const boardPanel = document.getElementById("boardPanel");
+
+const turnPill = document.getElementById("turnPill");
+const turnName = document.getElementById("turnName");
+const gameMsg = document.getElementById("gameMsg");
+
+const sx = document.getElementById("sx");
+const so = document.getElementById("so");
+const sd = document.getElementById("sd");
+
+const scoreXLabel = document.getElementById("scoreXLabel");
+const scoreOLabel = document.getElementById("scoreOLabel");
+
+const xNameInput = document.getElementById("xName");
+const oNameInput = document.getElementById("oName");
+const starterSelect = document.getElementById("starter");
+
+const rematchBtn = document.getElementById("rematchBtn");
+const undoBtn = document.getElementById("undoBtn");
+const resetScoreBtn = document.getElementById("resetScoreBtn");
+const themeBtn = document.getElementById("themeBtn");
+
+const settingsBtn = document.getElementById("settingsBtn");
+const settingsPanel = document.getElementById("settingsPanel");
+
+const createRoomBtn = document.getElementById("createRoomBtn");
+const copyLinkBtn = document.getElementById("copyLinkBtn");
+const roomPill = document.getElementById("roomPill");
+const roomIdTxt = document.getElementById("roomIdTxt");
+
+/* =========================
+   THEME + SETTINGS PANEL
+========================= */
+function setTheme(isDark){
+  document.body.classList.toggle("dark", isDark);
+  themeBtn.textContent = isDark ? "☀️" : "🌙";
+  themeBtn.setAttribute("aria-pressed", isDark ? "true" : "false");
+  try { localStorage.setItem(THEME_KEY, isDark ? "dark" : "light"); } catch {}
+}
+function loadTheme(){
+  try {
+    const v = localStorage.getItem(THEME_KEY);
+    setTheme(v === "dark");
+  } catch { setTheme(false); }
+}
+themeBtn.addEventListener("click", () => setTheme(!document.body.classList.contains("dark")));
+
+function setSettingsOpen(open){
+  settingsBtn.setAttribute("aria-expanded", open ? "true" : "false");
+  if(open){
+    settingsPanel.hidden = false;
+    settingsPanel.classList.add("show");
+  } else {
+    settingsPanel.classList.remove("show");
+    settingsPanel.hidden = true;
+  }
+  try { localStorage.setItem(SETTINGS_KEY, open ? "1" : "0"); } catch {}
+}
+function loadSettingsOpen(){
+  try {
+    const v = localStorage.getItem(SETTINGS_KEY);
+    setSettingsOpen(v === "1");
+  } catch { setSettingsOpen(false); }
+}
+settingsBtn.addEventListener("click", () => {
+  const isOpen = settingsBtn.getAttribute("aria-expanded") === "true";
+  setSettingsOpen(!isOpen);
+});
+
+/* =========================
+   UNDO LOCAL (1 STEP)
+========================= */
+function clearHistory(){
+  history = [];
+  undoBtn.disabled = true;
+}
+function pushHistorySnapshot(){
+  history = [{ state: deepClone(state), score: deepClone(score) }];
+  undoBtn.disabled = false;
+}
+undoBtn.addEventListener("click", () => {
+  if(roomId) return;
+  if(history.length === 0) return;
+  const prev = history.pop();
+  state = prev.state;
+  score = prev.score;
+  undoBtn.disabled = true;
+  renderAll();
+});
+
+/* =========================
+   TURN HELPERS (A+B+C)
+========================= */
+function myTurn(){
+  if(!myRole) return false;
+  return (myRole === "X" && state.turn === X) || (myRole === "O" && state.turn === O);
+}
+function updateTurnLockUI(){
+  // elegant dim când nu e rândul tău (doar în Room)
+  const locked = !!(roomId && myRole && state && !myTurn());
+  boardPanel.classList.toggle("turn-locked", locked);
+}
+
+/* =========================
+   BUILD BOARD
+========================= */
+function buildBoard(){
+  bigGrid.innerHTML = "";
+  for(let m=0; m<9; m++){
+    const miniEl = document.createElement("div");
+    miniEl.className = "mini";
+    miniEl.dataset.mini = String(m);
+
+    const grid = document.createElement("div");
+    grid.className = "mini-grid";
+
+    for(let c=0; c<9; c++){
+      const cell = document.createElement("div");
+      cell.className = "cell";
+      cell.dataset.mini = String(m);
+      cell.dataset.cell = String(c);
+
+      cell.addEventListener("click", () => {
+        // ✅ A: blocare logică în multiplayer
+        if(roomId && myRole && !myTurn()) return;
+
+        if(roomId) submitMoveMultiplayer(m, c);
+        else onCellClickLocal(m, c);
+      });
+
+      grid.appendChild(cell);
+    }
+
+    miniEl.appendChild(grid);
+    bigGrid.appendChild(miniEl);
+  }
+}
+
+/* =========================
+   LOCAL MOVE
+========================= */
+function onCellClickLocal(m, c){
+  pushHistorySnapshot();
+  const res = applyMove(state, score, m, c);
+  if(!res.ok){
+    history = [];
+    undoBtn.disabled = true;
+    return;
+  }
+  state = res.state;
+  score = res.score;
+  renderAll();
+}
+
+/* =========================
+   RENDER
+========================= */
+function setBigWinLine(show, winner, lineIndex){
+  bigWinLineEl.className = "big-winline";
+  bigWinLineEl.style.color = "transparent";
+  bigWinLineEl.hidden = true;
+  if(!show) return;
+  bigWinLineEl.hidden = false;
+  bigWinLineEl.classList.add("show");
+  bigWinLineEl.classList.add(LINE_CLASS[lineIndex]);
+  bigWinLineEl.style.color = (winner === X) ? "var(--x)" : "var(--o)";
+}
+
+function renderAll(){
+  const isXTurn = (state.turn === X);
+  turnPill.textContent = isXTurn ? "X" : "O";
+  turnPill.classList.toggle("x", isXTurn);
+  turnPill.classList.toggle("o", !isXTurn);
+  turnName.textContent = getTurnName();
+
+  scoreXLabel.textContent = state.players.x;
+  scoreOLabel.textContent = state.players.o;
+
+  sx.textContent = String(score.x);
+  so.textContent = String(score.o);
+  sd.textContent = String(score.d);
+
+  // ✅ C: status text clar
+  if(state.gameOver){
+    if(state.winner === X) gameMsg.textContent = `— Câștigă ${state.players.x}!`;
+    else if(state.winner === O) gameMsg.textContent = `— Câștigă ${state.players.o}!`;
+    else gameMsg.textContent = "— Egal!";
+  } else {
+    if(roomId){
+      if(!myRole) gameMsg.textContent = "— În cameră (spectator)…";
+      else if(myTurn()) gameMsg.textContent = `— E rândul tău (${myRole})`;
+      else gameMsg.textContent = `— Așteaptă mutarea adversarului (${myRole})`;
+    } else {
+      gameMsg.textContent = "";
+    }
+  }
+
+  if(state.gameOver && (state.winner === X || state.winner === O) && state.bigWinLine !== null){
+    setBigWinLine(true, state.winner, state.bigWinLine);
+  } else {
+    setBigWinLine(false);
+  }
+
+  const miniEls = bigGrid.querySelectorAll(".mini");
+  const forcedNow = allowedMiniIndex(state);
+
+  miniEls.forEach(miniEl => {
+    const m = Number(miniEl.dataset.mini);
+    const mini = state.minis[m];
+
+    miniEl.classList.remove("active","blocked","won","forbidden","x-turn","o-turn","x-won","o-won","drawn");
+
+    if(!state.gameOver){
+      if(forcedNow === -1){
+        if(mini.status === MINI_OPEN){
+          miniEl.classList.add("active", state.turn === X ? "x-turn" : "o-turn");
+        }
+      } else {
+        if(m === forcedNow){
+          miniEl.classList.add("active", state.turn === X ? "x-turn" : "o-turn");
+        } else {
+          miniEl.classList.add("forbidden");
+        }
+      }
+    } else {
+      miniEl.classList.add("blocked");
+    }
+
+    miniEl.querySelector(".stamp")?.remove();
+    miniEl.querySelector(".winline")?.remove();
+
+    if(mini.status !== MINI_OPEN){
+      miniEl.classList.add("blocked");
+
+      if(mini.status === MINI_X) miniEl.classList.add("won","x-won");
+      else if(mini.status === MINI_O) miniEl.classList.add("won","o-won");
+      else if(mini.status === MINI_DRAW) miniEl.classList.add("drawn");
+
+      const stamp = document.createElement("div");
+      stamp.className = "stamp";
+      stamp.textContent = miniStampSymbol(mini.status);
+      miniEl.appendChild(stamp);
+
+      if((mini.status === MINI_X || mini.status === MINI_O) && mini.winLine !== null){
+        const wl = document.createElement("div");
+        wl.className = "winline " + LINE_CLASS[mini.winLine];
+        miniEl.appendChild(wl);
+      }
+    }
+
+    const cellEls = miniEl.querySelectorAll(".cell");
+    cellEls.forEach(cellEl => {
+      const c = Number(cellEl.dataset.cell);
+      const v = mini.cells[c];
+
+      cellEl.innerHTML = "";
+      cellEl.classList.remove("x","o");
+
+      if(v !== EMPTY){
+        const mark = document.createElement("div");
+        mark.className = "mark";
+        mark.textContent = cellSymbol(v);
+        cellEl.appendChild(mark);
+        cellEl.classList.add(v === X ? "x" : "o");
+      }
+
+      cellEl.classList.toggle("filled", v !== EMPTY);
+    });
+  });
+
+  if(roomId){
+    undoBtn.disabled = true;
+    starterSelect.disabled = true;
+  } else {
+    starterSelect.disabled = false;
+  }
+
+  // ✅ B: dim elegant
+  updateTurnLockUI();
+}
+
+/* =========================
+   MULTIPLAYER HELPERS
+========================= */
+function getRoomFromUrl(){
+  const url = new URL(location.href);
+  return url.searchParams.get("room");
+}
+function makeRoomId(){
+  return Math.random().toString(36).slice(2, 14).toUpperCase();
+}
+function rRoom(id){ return ref(db, `rooms/${id}`); }
+function rGame(id){ return ref(db, `rooms/${id}/game`); }
+
+function showRoomUI(id){
+  roomPill.style.display = "inline-flex";
+  roomIdTxt.textContent = id;
+  copyLinkBtn.disabled = false;
+}
+
+copyLinkBtn.addEventListener("click", async () => {
+  await navigator.clipboard.writeText(location.href);
+  alert("Link copiat ✅");
+});
+
+createRoomBtn.addEventListener("click", async () => {
+  if(!myUid){
+    alert("Așteaptă autentificarea…");
+    return;
+  }
+
+  roomId = makeRoomId();
+  myRole = "X";
+
+  const names = {
+    x: (xNameInput.value.trim() || "Player X").slice(0,18),
+    o: (oNameInput.value.trim() || "Player O").slice(0,18),
+  };
+
+  state = newGameState(X, names);
+  score = { x: 0, o: 0, d: 0 };
+  clearHistory();
+  renderAll();
+
+  try{
+    await set(rRoom(roomId), {
+      createdAt: Date.now(),
+      hostUid: myUid,
+      guestUid: null,
+      game: {
+        state,
+        score,
+        version: 1,
+        updatedAt: Date.now()
+      }
+    });
+
+    const url = new URL(location.href);
+    url.searchParams.set("room", roomId);
+    window.history.replaceState(null, "", url.toString());
+
+    showRoomUI(roomId);
+    startRoomListener(roomId);
+
+  } catch(e){
+    alert("DB error: " + (e?.code || "") + " " + (e?.message || e));
+    console.error(e);
+    return;
+  }
+});
+
+async function joinRoom(id){
+  roomId = id;
+  const snap = await get(rRoom(id));
+  if(!snap.exists()){
+    alert("Room invalid.");
+    roomId = null;
+    return;
+  }
+  const data = snap.val();
+
+  if(data.hostUid === myUid){
+    myRole = "X";
+  } else if(data.guestUid === myUid){
+    myRole = "O";
+  } else if(!data.guestUid){
+    await update(rRoom(id), { guestUid: myUid });
+    myRole = "O";
+  } else {
+    myRole = null;
+    alert("Room este plin (deja 2 jucători). Poți doar privi.");
+  }
+
+  showRoomUI(roomId);
+  startRoomListener(roomId);
+}
+
+function startRoomListener(id){
+  onValue(rGame(id), (snap) => {
+    const g = snap.val();
+    if(!g) return;
+
+    state = g.state;
+    score = g.score;
+    renderAll();
+  });
+}
+
+async function submitMoveMultiplayer(m, c){
+  if(!roomId) return;
+  if(state.gameOver) return;
+  if(!myTurn()) return;
+
+  await runTransaction(rGame(roomId), (g) => {
+    if(!g) return g;
+
+    const turnIsX = g.state.turn === X;
+    const roleOk = (myRole === "X" && turnIsX) || (myRole === "O" && !turnIsX);
+    if(!roleOk) return g;
+
+    const res = applyMove(g.state, g.score, m, c);
+    if(!res.ok) return g;
+
+    g.state = res.state;
+    g.score = res.score;
+    g.version = (g.version || 0) + 1;
+    g.updatedAt = Date.now();
+
+    return g;
+  });
+}
+
+/* =========================
+   NAME CHANGES (multiplayer-aware)
+========================= */
+async function updateNames(){
+  const xName = (xNameInput.value.trim() || "Player X").slice(0,18);
+  const oName = (oNameInput.value.trim() || "Player O").slice(0,18);
+
+  if(!roomId){
+    state.players.x = xName;
+    state.players.o = oName;
+    renderAll();
+    return;
+  }
+
+  await runTransaction(rGame(roomId), (g) => {
+    if(!g) return g;
+    if(myRole === "X") g.state.players.x = xName;
+    if(myRole === "O") g.state.players.o = oName;
+    return g;
+  });
+}
+xNameInput.addEventListener("input", updateNames);
+oNameInput.addEventListener("input", updateNames);
+
+/* =========================
+   REMATCH / RESET SCORE
+========================= */
+rematchBtn.addEventListener("click", async () => {
+  if(!roomId){
+    const names = deepClone(state.players);
+    const starter = (starterSelect.value === "O") ? O : X;
+    state = newGameState(starter, names);
+    clearHistory();
+    renderAll();
+    return;
+  }
+
+  if(myRole !== "X"){
+    alert("Doar Host (X) poate da Rematch în Room.");
+    return;
+  }
+
+  await runTransaction(rGame(roomId), (g) => {
+    if(!g) return g;
+    const names = g.state.players;
+    g.state = newGameState(X, names);
+    g.version = (g.version || 0) + 1;
+    g.updatedAt = Date.now();
+    return g;
+  });
+});
+
+resetScoreBtn.addEventListener("click", async () => {
+  if(!roomId){
+    score = { x: 0, o: 0, d: 0 };
+    renderAll();
+    return;
+  }
+
+  if(myRole !== "X"){
+    alert("Doar Host (X) poate reseta scorul în Room.");
+    return;
+  }
+
+  await runTransaction(rGame(roomId), (g) => {
+    if(!g) return g;
+    g.score = { x: 0, o: 0, d: 0 };
+    g.version = (g.version || 0) + 1;
+    g.updatedAt = Date.now();
+    return g;
+  });
+});
+
+/* =========================
+   INIT
+========================= */
+function initLocal(){
+  loadTheme();
+  loadSettingsOpen();
+  const starter = (starterSelect.value === "O") ? O : X;
+
+  state = newGameState(starter, {
+    x: (xNameInput.value.trim() || "Player X").slice(0,18),
+    o: (oNameInput.value.trim() || "Player O").slice(0,18),
+  });
+  score = { x: 0, o: 0, d: 0 };
+
+  buildBoard();
+  clearHistory();
+  renderAll();
+}
+
+await signInAnonymously(auth);
+
+onAuthStateChanged(auth, async (user) => {
+  if(!user) return;
+  myUid = user.uid;
+
+  initLocal();
+
+  const urlRoom = getRoomFromUrl();
+  if(urlRoom){
+    await joinRoom(urlRoom);
+  }
+});
+</script>

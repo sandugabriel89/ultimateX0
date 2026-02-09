@@ -1,0 +1,474 @@
+:root{
+  --gap: 10px;
+  --mini-gap: 6px;
+  --mini-border: 3px;
+  --radius: 14px;
+
+  --bg: #f6f7fb;
+  --panel: #ffffff;
+  --text: #111;
+  --muted: #666;
+  --line: #d7dbe6;
+
+  --blocked: #f2f3f7;
+  --win: #eaffef;
+
+  --x: #2563eb;
+  --o: #f97316;
+}
+
+*{ box-sizing: border-box; }
+
+body{
+  margin: 0;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  display: grid;
+  place-items: center;
+  padding: 14px;
+}
+
+/* =========================
+   DARK MODE
+========================= */
+body.dark{
+  --bg:#0f172a;
+  --panel:#020617;
+  --text:#e5e7eb;
+  --muted:#94a3b8;
+  --line:#1e293b;
+
+  --blocked: rgba(255,255,255,.06);
+  --win: rgba(34,197,94,.14);
+}
+
+.app{
+  width: min(980px, 100%);
+  display: grid;
+  gap: 12px;
+}
+
+.panel{
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 12px;
+}
+
+/* Sticky header */
+.sticky{
+  position: sticky;
+  top: 6px;
+  z-index: 10;
+}
+
+.row{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.title{
+  font-weight: 900;
+  letter-spacing: .2px;
+  font-size: 18px;
+  line-height: 1.1;
+}
+
+.btns{
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+button{
+  appearance: none;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--text);
+  border-radius: 12px;
+  padding: 8px 10px;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 14px;
+}
+button:active{ transform: translateY(1px); }
+button.secondary{ background: rgba(0,0,0,.03); }
+body.dark button.secondary{ background: rgba(255,255,255,.06); }
+button:disabled{ opacity: .55; cursor: not-allowed; transform: none; }
+
+.settings-toggle{ white-space: nowrap; }
+
+/* =========================
+   SETTINGS (collapsible)
+========================= */
+.settings-panel{
+  margin-top: 6px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+.settings-panel[hidden]{ display:none; }
+.settings-panel.show{
+  display:block;
+  animation: fadeIn .12s ease-out;
+}
+@keyframes fadeIn{
+  from{ opacity:0; transform: translateY(-2px); }
+  to{ opacity:1; transform: translateY(0); }
+}
+
+/* Settings compact: 2 coloane */
+.settings{
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 10px;
+  align-items: end;
+  justify-content: flex-start;
+}
+.field{
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.field label{
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 700;
+  letter-spacing: .2px;
+}
+.field input, .field select{
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--text);
+  border-radius: 12px;
+  padding: 8px 10px;
+  font-weight: 650;
+  outline: none;
+  font-size: 14px;
+}
+
+/* =========================
+   STATUS + SCORE
+========================= */
+.status{
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+  color: var(--muted);
+  font-size: 13px;
+
+  /* mai mult spațiu sus/jos */
+  padding-top: 12px;
+  padding-bottom: 14px;
+}
+
+.turn-text{
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  color: var(--text);
+}
+
+.msg{ font-weight: 800; color: var(--muted); }
+
+.turn-indicator{
+  display: inline-grid;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  place-items: center;
+  font-weight: 950;
+  color: #fff;
+  font-size: 14px;
+}
+.turn-indicator.x{ background: var(--x); }
+.turn-indicator.o{ background: var(--o); }
+
+.score{
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  color: var(--muted);
+}
+.pill{
+  background: rgba(0,0,0,.03);
+  border: 1px solid var(--line);
+  padding: 5px 9px;
+  border-radius: 999px;
+}
+body.dark .pill{ background: rgba(255,255,255,.06); }
+.score .pill span{
+  font-weight: 700;
+  color: var(--text);
+}
+
+.legend{
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+/* =========================
+   BOARD
+========================= */
+.board{ padding: 12px; }
+.board-wrap{ position: relative; }
+
+.big-grid{
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--gap);
+}
+
+
+/* =========================
+   MINI TABLĂ – CONTUR UNIC (FIX)
+========================= */
+.mini{
+  position: relative;
+  border: var(--mini-border) solid rgba(0,0,0,.55); /* contur implicit */
+  border-radius: 16px;
+  background: transparent;
+  overflow: hidden;
+  transition: border-color .18s ease, background .18s ease, opacity .15s ease;
+}
+
+/* dark mode – contur implicit */
+body.dark .mini{
+  border-color: rgba(255,255,255,.22);
+  background: rgba(255,255,255,.03);
+}
+
+/* active NU mai adaugă gri; doar jucătorul colorează */
+.mini.active{
+  background: transparent;
+}
+
+/* active X/O: schimbăm DIRECT border-color (NU outline) */
+.mini.active.x-turn{
+  border-color: var(--x);
+  box-shadow: 0 0 15px var(--x);
+  background: rgba(37,99,235,.12);
+}
+.mini.active.o-turn{
+  border-color: var(--o);
+  box-shadow: 0 0 15px var(--o);
+  background: rgba(249,115,22,.14);
+}
+
+/* forbidden */
+.mini.forbidden{
+  opacity: .40;
+  pointer-events: none;
+  filter: grayscale(.15);
+}
+
+/* blocked */
+.mini.blocked{
+  background: var(--blocked);
+  opacity: .92;
+}
+
+/* won / drawn */
+.mini.won{
+  background: var(--win);
+}
+.mini.won.x-won{ border-color: var(--x); }
+.mini.won.o-won{ border-color: var(--o); }
+
+.mini.drawn{
+  border-color: rgba(0,0,0,.35);
+}
+body.dark .mini.drawn{
+  border-color: rgba(255,255,255,.35);
+}
+
+/* =========================
+   MINI GRID + CELULE
+========================= */
+.mini-grid{
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--mini-gap);
+  padding: 10px;
+}
+
+.cell{
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border: 2px solid rgba(0,0,0,.55);
+  border-radius: 12px;
+  background: transparent;
+  display: grid;
+  place-items: center;
+  user-select: none;
+  cursor: pointer;
+  position: relative;
+  line-height: 1;
+  transition: transform .06s ease, background .15s ease;
+}
+body.dark .cell{ border-color: rgba(255,255,255,.22); }
+
+.cell:active{ transform: scale(.98); }
+
+.cell.filled{
+  cursor: default;
+  background: rgba(0,0,0,.02);
+}
+body.dark .cell.filled{ background: rgba(255,255,255,.04); }
+
+/* Pop animation */
+@keyframes pop{
+  0%{ transform: scale(.6); opacity: 0; }
+  100%{ transform: scale(1); opacity: 1; }
+}
+.mark{
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  transform: translateY(-1px);
+  font-size: 26px;
+  font-weight: 950;
+  font-family: "Comic Sans MS", cursive;
+  animation: pop 0.3s ease-out;
+}
+.cell.x .mark{ color: var(--x); }
+.cell.o .mark{ color: var(--o); }
+
+/* =========================
+   STAMP (mini câștigată)
+========================= */
+.stamp{
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 58px;
+  font-weight: 950;
+  letter-spacing: 2px;
+  background: rgba(255,255,255,.55);
+  backdrop-filter: blur(1px);
+  pointer-events: none;
+  line-height: 1;
+}
+body.dark .stamp{ background: rgba(2,6,23,.55); }
+.mini.won.x-won .stamp{ color: var(--x); }
+.mini.won.o-won .stamp{ color: var(--o); }
+.mini.drawn .stamp{ color: rgba(0,0,0,.45); }
+body.dark .mini.drawn .stamp{ color: rgba(255,255,255,.55); }
+
+/* =========================
+   LINIE CÂȘTIG (mini)
+========================= */
+.winline{
+  position: absolute;
+  left: 10px; right: 10px; top: 10px; bottom: 10px;
+  pointer-events: none;
+  opacity: .92;
+}
+.winline::before{
+  content:"";
+  position: absolute;
+  left: 6px; right: 6px;
+  top: 50%;
+  height: 6px;
+  border-radius: 999px;
+  transform: translateY(-50%);
+  background: currentColor;
+  box-shadow: 0 0 0 6px rgba(0,0,0,.06);
+  transition: width 0.3s ease-out;
+  width: 0;
+}
+.mini.won .winline::before {
+  width: 92%; /* Se extinde când e câștigat */
+}
+.mini.x-won .winline{ color: var(--x); }
+.mini.o-won .winline{ color: var(--o); }
+.winline.r0::before{ top: 16.7%; }
+.winline.r1::before{ top: 50%; }
+.winline.r2::before{ top: 83.3%; }
+.winline.d0::before{ top: 50%; transform: translateY(-50%) rotate(45deg); }
+.winline.d1::before{ top: 50%; transform: translateY(-50%) rotate(-45deg); }
+.winline.c0::before,
+.winline.c1::before,
+.winline.c2::before{
+  top: 6px;
+  bottom: 6px;
+  left: 50%;
+  right: auto;
+  width: 6px;
+  height: auto;
+  transform: translateX(-50%);
+}
+.winline.c0::before{ left: 16.7%; }
+.winline.c1::before{ left: 50%; }
+.winline.c2::before{ left: 83.3%; }
+
+/* =========================
+   LINIE CÂȘTIG (big)
+========================= */
+.big-winline{
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  display: none;
+  place-items: center;
+  opacity: .95;
+}
+.big-winline.show{ display: grid; }
+.big-winline::before{
+  content:"";
+  width: 92%;
+  height: 10px;
+  border-radius: 999px;
+  background: currentColor;
+  box-shadow: 0 0 0 10px rgba(0,0,0,.06);
+}
+.big-winline.r0{ transform: translateY(-34%); }
+.big-winline.r1{ transform: translateY(0); }
+.big-winline.r2{ transform: translateY(34%); }
+.big-winline.c0{ transform: rotate(90deg) translateY(34%); }
+.big-winline.c1{ transform: rotate(90deg) translateY(0); }
+.big-winline.c2{ transform: rotate(90deg) translateY(-34%); }
+.big-winline.d0{ transform: rotate(45deg); }
+.big-winline.d1{ transform: rotate(-45deg); }
+.mini.forbidden{
+  opacity: 1 !important;
+  background: transparent !important;
+  filter: none !important;
+}
+/* =========================
+   RESPONSIVE
+========================= */
+@media (max-width: 420px){
+  .settings{ grid-template-columns: 1fr; }
+}
+@media (max-width: 520px){
+  :root{ --gap: 8px; --mini-gap: 5px; }
+  .stamp{ font-size: 54px; }
+  .status{ padding-top: 14px; padding-bottom: 16px; }
+}
+
+
+#boardPanel.turn-locked{
+  opacity: .78;
+  transition: opacity .15s ease;
+}
+
+#boardPanel.turn-locked .cell{
+  cursor: not-allowed;
+}
+
+#boardPanel.turn-locked .mini.active{
+  /* păstrăm focus-ul subtil, dar fără “să sară” */
+  filter: saturate(.9);
+}
