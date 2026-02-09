@@ -301,20 +301,7 @@ body.dark .mini.drawn{
   padding: 10px;
 }
 
-.cell{
-  width: 100%;
-  aspect-ratio: 1 / 1;
-  border: 2px solid rgba(0,0,0,.55);
-  border-radius: 12px;
-  background: transparent;
-  display: grid;
-  place-items: center;
-  user-select: none;
-  cursor: pointer;
-  position: relative;
-  line-height: 1;
-  transition: transform .06s ease, background .15s ease;
-}
+
 body.dark .cell{ border-color: rgba(255,255,255,.22); }
 
 .cell:active{ transform: scale(.98); }
@@ -330,23 +317,60 @@ body.dark .cell.filled{ background: rgba(255,255,255,.04); }
   0%{ transform: scale(.6); opacity: 0; }
   100%{ transform: scale(1); opacity: 1; }
 }
-
+/* ===== CELL + MARK (FINAL, STABLE) ===== */
 .cell{
-  /* setează o mărime “de bază” pentru simbol, în funcție de ecran */
-  font-size: clamp(16px, 4.6vw, 28px);
-  overflow: hidden; /* ca să nu iasă nimic din celulă */
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border: 2px solid rgba(0,0,0,.55);
+  border-radius: 12px;
+  background: transparent;
+
+  display: grid;
+  place-items: center;
+  user-select: none;
+  cursor: pointer;
+  position: relative;
+  line-height: 1;
+
+  transition: transform .06s ease, background .15s ease;
+
+  /* 🔒 mărime stabilă pe orice device */
+  font-size: clamp(14px, 2.4vmin, 22px);
+  overflow: hidden;
 }
 
+body.dark .cell{
+  border-color: rgba(255,255,255,.22);
+}
+
+.cell:active{
+  transform: scale(.98);
+}
+
+.cell.filled{
+  cursor: default;
+  background: rgba(0,0,0,.02);
+}
+body.dark .cell.filled{
+  background: rgba(255,255,255,.04);
+}
+
+/* ===== X / O ===== */
 .mark{
   position: absolute;
   inset: 0;
   display: grid;
   place-items: center;
-  transform: translateY(-1px);
-  font-size: 1em;      /* ia din .cell */
+
+  font-size: 1em;     /* ia direct din .cell */
   font-weight: 950;
   line-height: 1;
+
   animation: pop 0.3s ease-out;
+}
+
+.cell.x .mark{ color: var(--x); }
+.cell.o .mark{ color: var(--o); };
 }
 .cell.x .mark{ color: var(--x); }
 .cell.o .mark{ color: var(--o); }
