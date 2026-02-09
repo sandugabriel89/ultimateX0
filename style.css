@@ -338,7 +338,7 @@ body.dark .cell.filled{ background: rgba(255,255,255,.04); }
   transform: translateY(-1px);
   font-size: 26px;
   font-weight: 950;
-  font-family: "Comic Sans MS", cursive;
+ 
   animation: pop 0.3s ease-out;
 }
 .cell.x .mark{ color: var(--x); }
@@ -385,11 +385,9 @@ body.dark .mini.drawn .stamp{ color: rgba(255,255,255,.55); }
   transform: translateY(-50%);
   background: currentColor;
   box-shadow: 0 0 0 6px rgba(0,0,0,.06);
-  transition: width 0.3s ease-out;
-  width: 0;
+ 
 }
-.mini.won .winline::before {
-  width: 92%; /* Se extinde când e câștigat */
+
 }
 .mini.x-won .winline{ color: var(--x); }
 .mini.o-won .winline{ color: var(--o); }
@@ -471,4 +469,5 @@ body.dark .mini.drawn .stamp{ color: rgba(255,255,255,.55); }
 #boardPanel.turn-locked .mini.active{
   /* păstrăm focus-ul subtil, dar fără “să sară” */
   filter: saturate(.9);
+
 }
