@@ -38,7 +38,10 @@
           <label>Nume O</label>
           <input id="oName" type="text" value="Player O" maxlength="18" />
         </div>
-
+<div class="field">
+  <label>Nume cameră (doar Host)</label>
+  <input id="roomNameInput" type="text" placeholder="ex: prieteni" maxlength="20" />
+</div>
         <div class="field">
           <label>Cine începe (local)</label>
           <select id="starter">
@@ -265,7 +268,7 @@ function applyMove(currentState, currentScore, m, c){
 const bigGrid = document.getElementById("bigGrid");
 const bigWinLineEl = document.getElementById("bigWinLine");
 const boardPanel = document.getElementById("boardPanel");
-
+const roomNameInput = document.getElementById("roomNameInput");
 const turnPill = document.getElementById("turnPill");
 const turnName = document.getElementById("turnName");
 const gameMsg = document.getElementById("gameMsg");
@@ -342,7 +345,13 @@ settingsBtn.addEventListener("click", () => {
   const isOpen = settingsBtn.getAttribute("aria-expanded") === "true";
   setSettingsOpen(!isOpen);
 });
-
+function normalizeRoomName(name){
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/[^a-z0-9\-]/g, "");
+}
 /* =========================
    UNDO LOCAL (1 STEP)
 ========================= */
@@ -585,7 +594,29 @@ createRoomBtn.addEventListener("click", async () => {
     return;
   }
 
-  roomId = makeRoomId();
+const rawName = roomNameInput.value;
+if(!rawName){
+  alert("Introdu un nume pentru cameră.");
+  return;
+}
+
+const customRoomId = normalizeRoomName(rawName);
+if(!customRoomId){
+  alert("Nume cameră invalid.");
+  return;
+}
+
+// verifică dacă există deja
+const roomRef = rRoom(customRoomId);
+const snap = await get(roomRef);
+if(snap.exists()){
+  alert("O cameră cu acest nume există deja.");
+  return;
+}
+
+roomId = customRoomId;
+myRole = "X";
+updateRoleUI();
   myRole = "X";
   updateRoleUI();
   
