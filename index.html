@@ -155,20 +155,7 @@ function newGameState(starter = X, names = {x:"Player X", o:"Player O"}){
     bigStatus: Array(9).fill(MINI_OPEN)
   };
 }
-  function updateHostControls() {
-  const isHost = myRole === "X";
 
-  // inputs nume
-  xNameInput.disabled = !isHost;
-  oNameInput.disabled = !isHost;
-
-  // butoane
-  rematchBtn.disabled = !isHost;
-  resetScoreBtn.disabled = !isHost;
-
-  // vizual (opțional, dar recomandat)
-  document.body.classList.toggle("guest-mode", !isHost);
-}
 
 
 function cellSymbol(v){ return v === X ? "X" : v === O ? "O" : ""; }
