@@ -601,7 +601,7 @@ createRoomBtn.addEventListener("click", async () => {
   roomId = makeRoomId();
   myRole = "X";
   updateRoleUI();
-  updateHostControls();
+  
 
   const names = {
     x: (xNameInput.value.trim() || "Player X").slice(0,18),
@@ -661,7 +661,7 @@ async function joinRoom(id){
     myRole = null;
     alert("Room este plin (deja 2 jucători). Poți doar privi.");
   }
-updateHostControls();
+
 updateRoleUI();
   showRoomUI(roomId);
   startRoomListener(roomId);
@@ -676,7 +676,7 @@ function startRoomListener(id){
     score = g.score;
     renderAll();
     updateRoleUI();
-    updateHostControls();
+    
   });
 }
 
