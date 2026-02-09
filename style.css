@@ -485,3 +485,19 @@ body.is-guest #createRoomBtn,
 body.is-guest #copyLinkBtn {
   display: none !important;
 }
+
+/* =========================
+   TURN COLOR FEEDBACK
+========================= */
+.turn-text.your-turn {
+  color: #16a34a; /* verde */
+}
+
+.turn-text.opponent-turn {
+  color: #dc2626; /* roșu */
+}
+
+/* păstrăm numele mai bold */
+.turn-text b {
+  font-weight: 900;
+}
