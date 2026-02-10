@@ -416,6 +416,8 @@ function buildBoard(){
       cell.dataset.cell = String(c);
 
       cell.addEventListener("click", () => {
+       
+  if (roomId && !mySeat) return;
         if(roomId && mySeat && !myTurn()) return;
         if(roomId) submitMoveMultiplayer(m, c);
         else onCellClickLocal(m, c);
@@ -479,7 +481,7 @@ function renderAll(){
     else gameMsg.textContent = "— Egal!";
   } else {
     if(roomId){
-      if(!mySeat) gameMsg.textContent = "— În cameră (spectator)…";
+      if(!mySeat) gameMsg.textContent = "— Spectator mode";
       else gameMsg.textContent = myTurn() ? "— Your turn" : "— Wait for your turn";
     } else {
       gameMsg.textContent = "";
