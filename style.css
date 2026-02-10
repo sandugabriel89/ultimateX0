@@ -575,7 +575,24 @@ body.is-spectator .cell{
   cursor: default !important;
 }
 
-body.in-room #createRoomBtn,
-body.in-room #resetScoreBtn {
+/* ======================================================
+   HOST: după ce ești în cameră, ascunde tot ce e cu roșu
+   (doar host, doar când body are clasa in-room)
+====================================================== */
+body.in-room.is-host #settingsBtn,
+body.in-room.is-host #settingsPanel,
+body.in-room.is-host #undoBtn,
+body.in-room.is-host #createRoomBtn,
+body.in-room.is-host #resetScoreBtn {
   display: none !important;
 }
+
+/* dacă vrei să ascunzi și câmpurile din setări chiar dacă cumva panelul apare */
+body.in-room.is-host #xName,
+body.in-room.is-host #oName,
+body.in-room.is-host #roomNameInput,
+body.in-room.is-host #hostPlaysAs,
+body.in-room.is-host #starter {
+  display: none !important;
+}
+
