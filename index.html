@@ -42,6 +42,13 @@
   <label>Nume cameră (doar Host)</label>
   <input id="roomNameInput" type="text" placeholder="ex: prieteni" maxlength="20" />
 </div>
+<div class="field">
+  <label>Eu joc cu</label>
+  <select id="hostPlaysAs">
+    <option value="X" selected>X</option>
+    <option value="O">O</option>
+  </select>
+</div>
         <div class="field">
           <label>Cine începe (local)</label>
           <select id="starter">
@@ -103,7 +110,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
-
+const hostPlaysAsSelect = document.getElementById("hostPlaysAs");
 /* =========================
    GAME CONSTANTS
 ========================= */
@@ -613,10 +620,10 @@ if(snap.exists()){
 }
 
 roomId = customRoomId;
-myRole = "X";
+const hostPlaysAs = hostPlaysAsSelect.value; // "X" sau "O"
+myRole = hostPlaysAs;
 updateRoleUI();
-  myRole = "X";
-  updateRoleUI();
+  
   
 
   const names = {
@@ -624,7 +631,8 @@ updateRoleUI();
     o: (oNameInput.value.trim() || "Player O").slice(0,18),
   };
 
-  state = newGameState(X, names);
+  const starter = (myRole === "X") ? X : O;
+state = newGameState(starter, names);
   score = { x: 0, o: 0, d: 0 };
   clearHistory();
   renderAll();
@@ -666,11 +674,17 @@ async function joinRoom(id){
   }
   const data = snap.val();
 
-  if(data.hostUid === myUid){
-    myRole = "X";
-  } else if(data.guestUid === myUid){
-    myRole = "O";
-  } else if(!data.guestUid){
+  if (data.hostUid === myUid) {
+  myRole = data.hostRole;
+} else if (!data.guestUid) {
+  await update(rRoom(id), { guestUid: myUid });
+  myRole = data.hostRole === "X" ? "O" : "X";
+} else if (data.guestUid === myUid) {
+  myRole = data.hostRole === "X" ? "O" : "X";
+} else {
+  myRole = null;
+  alert("Room este plin (spectator)");
+} else if(!data.guestUid){
     await update(rRoom(id), { guestUid: myUid });
     myRole = "O";
   } else {
