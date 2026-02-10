@@ -663,3 +663,6 @@ body.in-room.is-host #starter {
   50%{ transform: scale(1.04); }
   100%{ transform: scale(1); }
 }
+.winline{
+  display: none !important;
+}
