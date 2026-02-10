@@ -546,3 +546,8 @@ body.is-guest #copyLinkBtn {
   display: grid !important;
   place-items: center !important;
 }
+/* override final – ajustare optică */
+.mark{
+  transform: translateY(0.04em);
+}
+
