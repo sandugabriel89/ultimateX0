@@ -596,3 +596,42 @@ body.in-room.is-host #starter {
   display: none !important;
 }
 
+/* =========================
+   TURN STATUS – EMPHASISED
+========================= */
+
+/* baza */
+.turn-text {
+  font-size: 18px;      /* mai mare */
+  font-weight: 900;
+  letter-spacing: 0.2px;
+}
+
+/* rândul tău */
+.turn-text.your-turn {
+  color: #16a34a;       /* verde */
+  text-shadow: 0 0 6px rgba(22,163,74,.35);
+}
+
+/* rândul adversarului */
+.turn-text.opponent-turn {
+  color: #dc2626;       /* roșu */
+  opacity: .9;
+}
+
+/* mesajul mic de sub (Your turn / Wait...) */
+.msg {
+  font-size: 15px;
+  font-weight: 800;
+}
+
+/* opțional: pulse subtil când e rândul tău */
+.turn-text.your-turn {
+  animation: pulseTurn 1.4s ease-in-out infinite;
+}
+
+@keyframes pulseTurn {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.04); }
+  100% { transform: scale(1); }
+}
