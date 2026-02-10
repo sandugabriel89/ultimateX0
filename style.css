@@ -516,7 +516,9 @@ body.is-guest #createRoomBtn,
 body.is-guest #copyLinkBtn {
   display: none !important;
 }
-
+body.is-guest #hostPlaysAs {
+  display: none;
+}
 /* =========================
    TURN COLOR FEEDBACK
 ========================= */
