@@ -38,17 +38,20 @@
           <label>Nume O</label>
           <input id="oName" type="text" value="Player O" maxlength="18" />
         </div>
-<div class="field">
-  <label>Nume cameră (doar Host)</label>
-  <input id="roomNameInput" type="text" placeholder="ex: prieteni" maxlength="20" />
-</div>
-<div class="field">
-  <label>Eu joc cu</label>
-  <select id="hostPlaysAs">
-    <option value="X" selected>X</option>
-    <option value="O">O</option>
-  </select>
-</div>
+
+        <div class="field">
+          <label>Nume cameră (doar Host)</label>
+          <input id="roomNameInput" type="text" placeholder="ex: prieteni" maxlength="20" />
+        </div>
+
+        <div class="field">
+          <label>Eu joc cu (doar Host)</label>
+          <select id="hostPlaysAs">
+            <option value="X" selected>X</option>
+            <option value="O">O</option>
+          </select>
+        </div>
+
         <div class="field">
           <label>Cine începe (local)</label>
           <select id="starter">
@@ -57,8 +60,6 @@
           </select>
         </div>
       </div>
-
-      
     </div>
 
     <div class="row">
@@ -110,7 +111,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
-const hostPlaysAsSelect = document.getElementById("hostPlaysAs");
+
 /* =========================
    GAME CONSTANTS
 ========================= */
@@ -140,7 +141,10 @@ let history = []; // undo local (1 step)
 
 let myUid = null;
 let roomId = null;
-let myRole = null; // "X" | "O" | null
+
+// ✅ NEW: seat vs host
+let mySeat = null;   // "X" | "O" | null
+let isHost = false;  // true/false
 
 function deepClone(obj){
   if (typeof structuredClone === "function") return structuredClone(obj);
@@ -163,8 +167,6 @@ function newGameState(starter = X, names = {x:"Player X", o:"Player O"}){
     bigStatus: Array(9).fill(MINI_OPEN)
   };
 }
-
-
 
 function cellSymbol(v){ return v === X ? "X" : v === O ? "O" : ""; }
 function miniStampSymbol(st){ return st === MINI_X ? "X" : st === MINI_O ? "O" : st === MINI_DRAW ? "=" : ""; }
@@ -273,7 +275,10 @@ function applyMove(currentState, currentScore, m, c){
 const bigGrid = document.getElementById("bigGrid");
 const bigWinLineEl = document.getElementById("bigWinLine");
 const boardPanel = document.getElementById("boardPanel");
+
 const roomNameInput = document.getElementById("roomNameInput");
+const hostPlaysAsSelect = document.getElementById("hostPlaysAs");
+
 const turnPill = document.getElementById("turnPill");
 const turnName = document.getElementById("turnName");
 const gameMsg = document.getElementById("gameMsg");
@@ -303,18 +308,17 @@ const roomPill = document.getElementById("roomPill");
 const roomIdTxt = document.getElementById("roomIdTxt");
 
 /* =========================
-   THEME + SETTINGS PANEL
+   ROLE UI (Host/Guest/Spectator)
 ========================= */
 function updateRoleUI(){
-  const isHost = myRole === "X";
-  const isGuest = myRole === "O";
-  const isSpectator = roomId && !myRole;
-
-  document.body.classList.toggle("is-host", isHost);
-  document.body.classList.toggle("is-guest", isGuest);
-  document.body.classList.toggle("is-spectator", !!isSpectator);
+  document.body.classList.toggle("is-host", !!isHost);
+  document.body.classList.toggle("is-guest", !!(!isHost && mySeat));
+  document.body.classList.toggle("is-spectator", !!(roomId && !mySeat));
 }
 
+/* =========================
+   THEME + SETTINGS PANEL
+========================= */
 function setTheme(isDark){
   document.body.classList.toggle("dark", isDark);
   themeBtn.textContent = isDark ? "☀️" : "🌙";
@@ -350,6 +354,7 @@ settingsBtn.addEventListener("click", () => {
   const isOpen = settingsBtn.getAttribute("aria-expanded") === "true";
   setSettingsOpen(!isOpen);
 });
+
 function normalizeRoomName(name){
   return name
     .toLowerCase()
@@ -357,6 +362,7 @@ function normalizeRoomName(name){
     .replace(/\s+/g, "-")
     .replace(/[^a-z0-9\-]/g, "");
 }
+
 /* =========================
    UNDO LOCAL (1 STEP)
 ========================= */
@@ -379,15 +385,14 @@ undoBtn.addEventListener("click", () => {
 });
 
 /* =========================
-   TURN HELPERS (A+B+C)
+   TURN HELPERS
 ========================= */
 function myTurn(){
-  if(!myRole) return false;
-  return (myRole === "X" && state.turn === X) || (myRole === "O" && state.turn === O);
+  if(!mySeat) return false;
+  return (mySeat === "X" && state.turn === X) || (mySeat === "O" && state.turn === O);
 }
 function updateTurnLockUI(){
-  // elegant dim când nu e rândul tău (doar în Room)
-  const locked = !!(roomId && myRole && state && !myTurn());
+  const locked = !!(roomId && mySeat && state && !myTurn());
   boardPanel.classList.toggle("turn-locked", locked);
 }
 
@@ -411,9 +416,7 @@ function buildBoard(){
       cell.dataset.cell = String(c);
 
       cell.addEventListener("click", () => {
-        // ✅ A: blocare logică în multiplayer
-        if(roomId && myRole && !myTurn()) return;
-
+        if(roomId && mySeat && !myTurn()) return;
         if(roomId) submitMoveMultiplayer(m, c);
         else onCellClickLocal(m, c);
       });
@@ -470,16 +473,14 @@ function renderAll(){
   so.textContent = String(score.o);
   sd.textContent = String(score.d);
 
-  // ✅ C: status text clar
   if(state.gameOver){
     if(state.winner === X) gameMsg.textContent = `— Câștigă ${state.players.x}!`;
     else if(state.winner === O) gameMsg.textContent = `— Câștigă ${state.players.o}!`;
     else gameMsg.textContent = "— Egal!";
   } else {
     if(roomId){
-      if(!myRole) gameMsg.textContent = "— În cameră (spectator)…";
-      else if(myTurn()) gameMsg.textContent = `— Your turn`;
-      else gameMsg.textContent = `— Wait for your turn`;
+      if(!mySeat) gameMsg.textContent = "— În cameră (spectator)…";
+      else gameMsg.textContent = myTurn() ? "— Your turn" : "— Wait for your turn";
     } else {
       gameMsg.textContent = "";
     }
@@ -565,7 +566,6 @@ function renderAll(){
     starterSelect.disabled = false;
   }
 
-  // ✅ B: dim elegant
   updateTurnLockUI();
 }
 
@@ -599,40 +599,38 @@ createRoomBtn.addEventListener("click", async () => {
     return;
   }
 
-const rawName = roomNameInput.value;
-if(!rawName){
-  alert("Introdu un nume pentru cameră.");
-  return;
-}
+  const rawName = roomNameInput.value;
+  if(!rawName){
+    alert("Introdu un nume pentru cameră.");
+    return;
+  }
 
-const customRoomId = normalizeRoomName(rawName);
-if(!customRoomId){
-  alert("Nume cameră invalid.");
-  return;
-}
+  const customRoomId = normalizeRoomName(rawName);
+  if(!customRoomId){
+    alert("Nume cameră invalid.");
+    return;
+  }
 
-// verifică dacă există deja
-const roomRef = rRoom(customRoomId);
-const snap = await get(roomRef);
-if(snap.exists()){
-  alert("O cameră cu acest nume există deja.");
-  return;
-}
+  const roomRef = rRoom(customRoomId);
+  const snap = await get(roomRef);
+  if(snap.exists()){
+    alert("O cameră cu acest nume există deja.");
+    return;
+  }
 
-roomId = customRoomId;
-const hostPlaysAs = hostPlaysAsSelect.value; // "X" sau "O"
-myRole = hostPlaysAs;
-updateRoleUI();
-  
-  
+  roomId = customRoomId;
+
+  mySeat = (hostPlaysAsSelect.value === "O") ? "O" : "X";
+  isHost = true;
+  updateRoleUI();
 
   const names = {
     x: (xNameInput.value.trim() || "Player X").slice(0,18),
     o: (oNameInput.value.trim() || "Player O").slice(0,18),
   };
 
-  const starter = (myRole === "X") ? X : O;
-state = newGameState(starter, names);
+  const starter = (mySeat === "X") ? X : O;
+  state = newGameState(starter, names);
   score = { x: 0, o: 0, d: 0 };
   clearHistory();
   renderAll();
@@ -641,6 +639,7 @@ state = newGameState(starter, names);
     await set(rRoom(roomId), {
       createdAt: Date.now(),
       hostUid: myUid,
+      hostRole: mySeat,   // ✅ IMPORTANT
       guestUid: null,
       game: {
         state,
@@ -656,7 +655,6 @@ state = newGameState(starter, names);
 
     showRoomUI(roomId);
     startRoomListener(roomId);
-
   } catch(e){
     alert("DB error: " + (e?.code || "") + " " + (e?.message || e));
     console.error(e);
@@ -672,27 +670,28 @@ async function joinRoom(id){
     roomId = null;
     return;
   }
-  const data = snap.val();
 
-  if (data.hostUid === myUid) {
-  myRole = data.hostRole;
-} else if (!data.guestUid) {
-  await update(rRoom(id), { guestUid: myUid });
-  myRole = data.hostRole === "X" ? "O" : "X";
-} else if (data.guestUid === myUid) {
-  myRole = data.hostRole === "X" ? "O" : "X";
-} else {
-  myRole = null;
-  alert("Room este plin (spectator)");
-} else if(!data.guestUid){
+  const data = snap.val();
+  const hostRole = (data.hostRole === "O") ? "O" : "X";
+  const guestRole = (hostRole === "X") ? "O" : "X";
+
+  if (data.hostUid === myUid){
+    isHost = true;
+    mySeat = hostRole;
+  } else if (!data.guestUid){
     await update(rRoom(id), { guestUid: myUid });
-    myRole = "O";
+    isHost = false;
+    mySeat = guestRole;
+  } else if (data.guestUid === myUid){
+    isHost = false;
+    mySeat = guestRole;
   } else {
-    myRole = null;
-    alert("Room este plin (deja 2 jucători). Poți doar privi.");
+    isHost = false;
+    mySeat = null;
+    alert("Room este plin (spectator).");
   }
 
-updateRoleUI();
+  updateRoleUI();
   showRoomUI(roomId);
   startRoomListener(roomId);
 }
@@ -706,7 +705,6 @@ function startRoomListener(id){
     score = g.score;
     renderAll();
     updateRoleUI();
-    
   });
 }
 
@@ -719,8 +717,8 @@ async function submitMoveMultiplayer(m, c){
     if(!g) return g;
 
     const turnIsX = g.state.turn === X;
-    const roleOk = (myRole === "X" && turnIsX) || (myRole === "O" && !turnIsX);
-    if(!roleOk) return g;
+    const seatOk = (mySeat === "X" && turnIsX) || (mySeat === "O" && !turnIsX);
+    if(!seatOk) return g;
 
     const res = applyMove(g.state, g.score, m, c);
     if(!res.ok) return g;
@@ -736,6 +734,7 @@ async function submitMoveMultiplayer(m, c){
 
 /* =========================
    NAME CHANGES (multiplayer-aware)
+   ✅ only host can change BOTH names in room
 ========================= */
 async function updateNames(){
   const xName = (xNameInput.value.trim() || "Player X").slice(0,18);
@@ -748,10 +747,12 @@ async function updateNames(){
     return;
   }
 
+  if(!isHost) return;
+
   await runTransaction(rGame(roomId), (g) => {
     if(!g) return g;
-    if(myRole === "X") g.state.players.x = xName;
-    if(myRole === "O") g.state.players.o = oName;
+    g.state.players.x = xName;
+    g.state.players.o = oName;
     return g;
   });
 }
@@ -771,15 +772,18 @@ rematchBtn.addEventListener("click", async () => {
     return;
   }
 
-  if(myRole !== "X"){
-    alert("Doar Host (X) poate da Rematch în Room.");
+  if(!isHost){
+    alert("Doar Host poate da Rematch în Room.");
     return;
   }
 
   await runTransaction(rGame(roomId), (g) => {
     if(!g) return g;
     const names = g.state.players;
-    g.state = newGameState(X, names);
+
+    const starter = (mySeat === "X") ? X : O; // host starts
+    g.state = newGameState(starter, names);
+
     g.version = (g.version || 0) + 1;
     g.updatedAt = Date.now();
     return g;
@@ -793,8 +797,8 @@ resetScoreBtn.addEventListener("click", async () => {
     return;
   }
 
-  if(myRole !== "X"){
-    alert("Doar Host (X) poate reseta scorul în Room.");
+  if(!isHost){
+    alert("Doar Host poate reseta scorul în Room.");
     return;
   }
 
@@ -813,6 +817,7 @@ resetScoreBtn.addEventListener("click", async () => {
 function initLocal(){
   loadTheme();
   loadSettingsOpen();
+
   const starter = (starterSelect.value === "O") ? O : X;
 
   state = newGameState(starter, {
@@ -842,6 +847,3 @@ onAuthStateChanged(auth, async (user) => {
 </script>
 </body>
 </html>
-
-
-
