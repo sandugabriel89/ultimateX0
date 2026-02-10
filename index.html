@@ -314,7 +314,7 @@ function updateRoleUI(){
   document.body.classList.toggle("is-host", !!isHost);
   document.body.classList.toggle("is-guest", !!(!isHost && mySeat));
   document.body.classList.toggle("is-spectator", !!(roomId && !mySeat));
-   // IMPORTANT: dacă există roomId, ești în room
+
   document.body.classList.toggle("in-room", !!roomId);
 }
 
@@ -587,21 +587,9 @@ function rRoom(id){ return ref(db, `rooms/${id}`); }
 function rGame(id){ return ref(db, `rooms/${id}/game`); }
 
 function showRoomUI(id){
-  document.body.classList.add("in-room");   // 1) întâi intră în room
-  updateRoleUI();                           // 2) apoi setează is-host/is-guest/is-spectator corect
-
   roomPill.style.display = "inline-flex";
   roomIdTxt.textContent = id;
   copyLinkBtn.disabled = false;
-
-  // 3) fallback: dacă e host și e în room, ascunde direct elementele
-  if (isHost && roomId){
-    settingsBtn.style.display = "none";
-    settingsPanel.style.display = "none";
-    undoBtn.style.display = "none";
-    createRoomBtn.style.display = "none";
-    resetScoreBtn.style.display = "none";
-  }
 }
 
 
@@ -640,7 +628,7 @@ createRoomBtn.addEventListener("click", async () => {
   mySeat = (hostPlaysAsSelect.value === "O") ? "O" : "X";
   isHost = true;
   updateRoleUI();
-
+showRoomUI(roomId);
   const names = {
     x: (xNameInput.value.trim() || "Player X").slice(0,18),
     o: (oNameInput.value.trim() || "Player O").slice(0,18),
