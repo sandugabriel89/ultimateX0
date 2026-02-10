@@ -317,7 +317,7 @@ body.dark .cell.filled{ background: rgba(255,255,255,.04); }
   0%{ transform: scale(.6); opacity: 0; }
   100%{ transform: scale(1); opacity: 1; }
 }
-/* ===== CELL + MARK (FINAL, STABLE) ===== */
+/* ===== CELL + MARK (CLEAN) ===== */
 .cell{
   width: 100%;
   aspect-ratio: 1 / 1;
@@ -327,6 +327,7 @@ body.dark .cell.filled{ background: rgba(255,255,255,.04); }
 
   display: grid;
   place-items: center;
+
   user-select: none;
   cursor: pointer;
   position: relative;
@@ -334,7 +335,7 @@ body.dark .cell.filled{ background: rgba(255,255,255,.04); }
 
   transition: transform .06s ease, background .15s ease;
 
-  /* 🔒 mărime stabilă pe orice device */
+  /* mărime stabilă pe orice device */
   font-size: clamp(14px, 2.4vmin, 22px);
   overflow: hidden;
 }
@@ -355,11 +356,9 @@ body.dark .cell.filled{
   background: rgba(255,255,255,.04);
 }
 
-/* ===== X / O ===== */
 .mark{
-  position: relative;     /* nu mai absolute */
-  inset: auto;
-
+  /* centrare reală */
+  position: static;
   display: grid;
   place-items: center;
 
@@ -367,15 +366,12 @@ body.dark .cell.filled{
   font-weight: 950;
   line-height: 1;
 
-  /* mică corecție optică pe verticală (baseline) */
-  transform: translateY(0.06em);
+  /* poți ajusta fin dacă vrei */
+  transform: translateY(0.04em);
 
   animation: pop 0.3s ease-out;
 }
 
-.cell.x .mark{ color: var(--x); }
-.cell.o .mark{ color: var(--o); };
-}
 .cell.x .mark{ color: var(--x); }
 .cell.o .mark{ color: var(--o); }
 
