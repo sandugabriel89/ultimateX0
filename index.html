@@ -587,6 +587,7 @@ function rRoom(id){ return ref(db, `rooms/${id}`); }
 function rGame(id){ return ref(db, `rooms/${id}/game`); }
 
 function showRoomUI(id){
+  document.body.classList.add("in-room");   
   roomPill.style.display = "inline-flex";
   roomIdTxt.textContent = id;
   copyLinkBtn.disabled = false;
