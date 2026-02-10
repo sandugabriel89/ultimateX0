@@ -553,3 +553,25 @@ body.is-guest #hostPlaysAs {
   transform: translateY(0.04em);
 }
 
+/* ===== Spectator: vede doar tabla + scor/turn (fără controale) ===== */
+body.is-spectator #settingsBtn,
+body.is-spectator #settingsPanel,
+body.is-spectator #createRoomBtn,
+body.is-spectator #copyLinkBtn,
+body.is-spectator #undoBtn,
+body.is-spectator #rematchBtn,
+body.is-spectator #resetScoreBtn,
+body.is-spectator #hostPlaysAs,
+body.is-spectator #roomNameInput,
+body.is-spectator #xName,
+body.is-spectator #oName,
+body.is-spectator #starter {
+  display: none !important;
+}
+
+/* spectator nu poate interacționa cu tabla */
+body.is-spectator .cell{
+  pointer-events: none !important;
+  cursor: default !important;
+}
+
