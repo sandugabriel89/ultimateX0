@@ -635,3 +635,31 @@ body.in-room.is-host #starter {
   50%  { transform: scale(1.04); }
   100% { transform: scale(1); }
 }
+/* Mesajul din dreapta: Waiting / Make your move */
+#gameMsg{
+  font-size: 18px;
+  font-weight: 950;
+  letter-spacing: .2px;
+}
+
+/* verde = rândul tău */
+#gameMsg.your-turn{
+  color: #16a34a;
+  text-shadow: 0 0 6px rgba(22,163,74,.35);
+}
+
+/* roșu = așteaptă */
+#gameMsg.opponent-turn{
+  color: #dc2626;
+  text-shadow: 0 0 6px rgba(220,38,38,.25);
+}
+
+/* opțional: pulse doar când e rândul tău */
+#gameMsg.your-turn{
+  animation: pulseMsg 1.4s ease-in-out infinite;
+}
+@keyframes pulseMsg{
+  0%{ transform: scale(1); }
+  50%{ transform: scale(1.04); }
+  100%{ transform: scale(1); }
+}
