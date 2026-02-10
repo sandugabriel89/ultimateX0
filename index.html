@@ -493,12 +493,24 @@ if (roomId && mySeat){
     else if(state.winner === O) gameMsg.textContent = `— Câștigă ${state.players.o}!`;
     else gameMsg.textContent = "— Egal!";
   } else {
-    if(roomId){
-      if(!mySeat) gameMsg.textContent = "— Spectator mode";
-      else gameMsg.textContent = myTurn() ? "— Make your move" : "— Waiting for opponent";
-    } else {
-      gameMsg.textContent = "";
-    }
+    
+  // reset clase
+gameMsg.classList.remove("your-turn", "opponent-turn");
+
+if(roomId){
+  if(!mySeat){
+    gameMsg.textContent = "— Spectator mode";
+  } else if(myTurn()){
+    gameMsg.textContent = "— Make your move";
+    gameMsg.classList.add("your-turn");
+  } else {
+    gameMsg.textContent = "— Waiting for opponent";
+    gameMsg.classList.add("opponent-turn");
+  }
+} else {
+  gameMsg.textContent = "";
+}
+
   }
 
   if(state.gameOver && (state.winner === X || state.winner === O) && state.bigWinLine !== null){
