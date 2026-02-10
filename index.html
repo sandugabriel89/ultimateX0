@@ -469,7 +469,18 @@ function renderAll(){
   turnPill.classList.toggle("x", isXTurn);
   turnPill.classList.toggle("o", !isXTurn);
   turnName.textContent = getTurnName();
+const turnTextEl = document.querySelector(".turn-text");
 
+// reset
+turnTextEl.classList.remove("your-turn", "opponent-turn");
+
+if (roomId && mySeat){
+  if (myTurn()){
+    turnTextEl.classList.add("your-turn");
+  } else {
+    turnTextEl.classList.add("opponent-turn");
+  }
+}
   scoreXLabel.textContent = state.players.x;
   scoreOLabel.textContent = state.players.o;
 
@@ -484,7 +495,7 @@ function renderAll(){
   } else {
     if(roomId){
       if(!mySeat) gameMsg.textContent = "— Spectator mode";
-      else gameMsg.textContent = myTurn() ? "— Your turn" : "— Wait for your turn";
+      else gameMsg.textContent = myTurn() ? "— Make your move" : "— Waiting for opponent";
     } else {
       gameMsg.textContent = "";
     }
